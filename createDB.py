@@ -1,18 +1,17 @@
 import sqlite3
 
 
-db_file = "database.db"
+db_file = "./ML-Carros-Usados/database.db"
 
 # Conectar ao banco de dados (ou criar se não existir)
 conn = sqlite3.connect(db_file)
 cursor = conn.cursor()
 # Criar tabela para armazenar informações dos modelos
 cursor.execute('''
-    CREATE TABLE IF NOT EXISTS models (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+    CREATE TABLE IF NOT EXISTS models
+        (id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
-        accuracy REAL,
-    )
+        accuracy REAL)
 ''')
 conn.commit()
 conn.close()

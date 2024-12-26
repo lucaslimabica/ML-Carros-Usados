@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, sqlite3
 
 
+DATABASE = "./ML-Carros-Usados/database.db"
 app = Flask(__name__)
 
 def get_db_connection():

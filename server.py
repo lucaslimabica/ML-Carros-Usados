@@ -1,11 +1,26 @@
 from flask import Flask, request, jsonify
 import sqlite3
 import json
-import CRUD # para realizar CRUD na bd
+import os
 
 
-DATABASE = "./ML-Carros-Usados/database.db"
+base_dir = "C:/Users/lusca/Universidade/AA/TPFinal/ML-Carros-Usados"
+DATABASE = os.path.join(base_dir, "database.db")
 app = Flask(__name__)
+def get_db_connection():
+    """
+    Cria e retorna uma connection à base de dados SQLite.
+
+    Setada no sqlite3.Row,
+    Que permite-nos aceder às colunas pelo nome e index.
+
+    Returns:
+        sqlite3.Connection: Uma conexão à database.
+    """
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    return conn, cursor
 
 def validar_json(json_string, required_keys) -> bool:
     """
@@ -37,33 +52,42 @@ def status_check():
     return jsonify({"status": "API está online."}), 200
 
 # EP para info do modelo específico
-@app.route('/model-info/<str:model>', methods=['GET'])
+@app.route('/model-info/<string:model>', methods=['GET'])
 def model_info():
     pass
 
-# EP para postar um modelo
+# Endpoint para postar um modelo
 @app.route('/model', methods=['POST'])
 def model_post():
     data = request.get_json()
     if validar_json(json.dumps(data), ["name", "accuracy"]):
         name = data["name"]
         accuracy = data["accuracy"]
-        insert = CRUD.inserir_modelo(name, accuracy)
-        if insert:
-            return jsonify(
-                {"sucess": "True"},
-                {"data": data}
-            ), 201
-        else:
-            return jsonify(
-                {"sucess": "False"},
-                {"error": "Erro na inserção"}
-            ), 500
+        conn, cursor = get_db_connection()
+        try:
+            cursor.execute('''
+                INSERT INTO models (name, accuracy)
+                VALUES (?, ?)
+            ''', (name, accuracy))
+
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            return jsonify({
+                "success": False,
+                "error": f"Erro no servidor: {str(e)}"
+            }), 500
+        finally:
+            return jsonify({
+                "success": True,
+                "data": data
+            }), 201
     else:
-        return jsonify(
-                {"sucess": "False"},
-                {"error": "Erro no JSON inserido"}
-            ), 500
+        return jsonify({
+            "success": False,
+            "error": "Erro no JSON inserido. Verifique os campos 'name' e 'accuracy'."
+        }), 400
+
 
 # Executar o servidor
 if __name__ == "__main__":

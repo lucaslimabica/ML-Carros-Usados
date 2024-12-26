@@ -1,7 +1,7 @@
 import sqlite3
 
 
-DATABASE = "./ML-Carros-Usados/database.db"
+DATABASE = "C:Users/lusca/Universidade/AA/TPFinal/ML-Carros-Usados/database.db"
 
 def inserir_modelo(name, accuracy):
     conn = sqlite3.connect(DATABASE)
@@ -38,3 +38,5 @@ def get_modelo_nome(name):
     else:
         print(f"Modelo '{name}' não encontrado.")
         return None
+    
+inserir_modelo("TEste0", "17")

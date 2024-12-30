@@ -1,7 +1,7 @@
 import json
 import requests
 
-data = {"name": "Teste", "accuracy": "107"}
+data = {"name": "tESTE2", "accuracy": "1071"}
 
 response = requests.post(
     "http://127.0.0.1:5000/model",

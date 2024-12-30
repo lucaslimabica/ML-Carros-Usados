@@ -53,8 +53,34 @@ def status_check():
 
 # EP para info do modelo específico
 @app.route('/model-info/<string:model>', methods=['GET'])
-def model_info():
-    pass
+def model_info(model):
+    conn, cursor = get_db_connection()
+    try:
+        cursor.execute('''
+        SELECT * FROM models WHERE name = ?
+        ''', (model,))
+        model = cursor.fetchone()
+        conn.close()
+        if model:
+            name = model[1]
+            accuracy = model[2]
+            return jsonify({
+                "success": True,
+                "data": {
+                    "name": name,
+                    "accuracy": accuracy
+                }
+            }), 200
+        else:
+            return jsonify({
+                "success": False,
+                "error": f"Model wasn't found"
+            }), 404
+    except Exception as e:
+        return jsonify({
+                "success": False,
+                "error": f"Erro no servidor: {str(e)}"
+            }), 500
 
 # Endpoint para postar um modelo
 @app.route('/model', methods=['POST'])
@@ -72,16 +98,15 @@ def model_post():
 
             conn.commit()
             conn.close()
+            return jsonify({
+                "success": True,
+                "data": data
+            }), 201
         except Exception as e:
             return jsonify({
                 "success": False,
                 "error": f"Erro no servidor: {str(e)}"
             }), 500
-        finally:
-            return jsonify({
-                "success": True,
-                "data": data
-            }), 201
     else:
         return jsonify({
             "success": False,

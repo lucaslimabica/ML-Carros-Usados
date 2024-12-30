@@ -7,6 +7,8 @@ import os
 base_dir = "C:/Users/lusca/Universidade/AA/TPFinal/ML-Carros-Usados"
 DATABASE = os.path.join(base_dir, "database.db")
 app = Flask(__name__)
+
+
 def get_db_connection():
     """
     Cria e retorna uma connection à base de dados SQLite.
@@ -52,7 +54,7 @@ def status_check():
     return jsonify({"status": "API está online."}), 200
 
 # EP para info do modelo específico
-@app.route('/model-info/<string:model>', methods=['GET'])
+@app.route('/model/info/<string:model>', methods=['GET'])
 def model_info(model):
     conn, cursor = get_db_connection()
     try:
@@ -70,6 +72,36 @@ def model_info(model):
                     "name": name,
                     "accuracy": accuracy
                 }
+            }), 200
+        else:
+            return jsonify({
+                "success": False,
+                "error": f"Model wasn't found"
+            }), 404
+    except Exception as e:
+        return jsonify({
+                "success": False,
+                "error": f"Erro no servidor: {str(e)}"
+            }), 500
+
+@app.route('/model/info', methods=['GET'])
+def models_info():
+    conn, cursor = get_db_connection()
+    try:
+        cursor.execute('''
+        SELECT * FROM models
+        ''')
+        models = cursor.fetchall()
+        data = {}
+        conn.close()
+        if models:
+            for i, model in enumerate(models):
+                name = model[1]
+                accuracy = model[2]
+                data.update({f"{i}": {"name": f"{name}", "accuracy": f"{accuracy}"}})
+            return jsonify({
+                "success": True,
+                "data": data
             }), 200
         else:
             return jsonify({

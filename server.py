@@ -146,6 +146,5 @@ def model_post():
         }), 400
 
 
-# Executar o servidor
 if __name__ == "__main__":
     app.run(debug=True)

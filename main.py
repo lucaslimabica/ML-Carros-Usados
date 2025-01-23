@@ -31,7 +31,7 @@ for col in categorical_cols:
 X = train.drop(['price'], axis=1) # Features
 y = train['price'] # Target
 
-X_train, X_v, y_train, y_v = train_test_split(X, y, test_size=0.3, random_state=7) # 20% para validação
+X_train, X_v, y_train, y_v = train_test_split(X, y, test_size=0.2, random_state=7) # 20% para validação
 
 # Treino
 #model = RandomForestRegressor(n_estimators=100, random_state=7)

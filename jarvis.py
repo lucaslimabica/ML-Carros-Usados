@@ -20,8 +20,11 @@ def filtrarPalavras(texto):
     return ' '.join(palavras)
 
 
-def matrixar():
-    pass
+def matrixar(data_set):
+    vectorizer = TfidfVectorizer(max_features=1000)
+    X = vectorizer.fit_transform(data_set['filtrada']).toarray() # Tabela valor de "t" em "d" vinculado ao sentimento 
+    y = data_set['sentiment']
+    return X, y
 
 DATA = pd.DataFrame({
     'text': [
@@ -59,27 +62,9 @@ DATA = pd.DataFrame({
     'sentiment': [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
 })
 
-
-#print(DATA.head())
-
+# Tratamento dos Dados
 DATA['filtrada'] = DATA['text'].apply(filtrarPalavras)
-
-vectorizer = TfidfVectorizer(max_features=1000)
-X = vectorizer.fit_transform(DATA['filtrada']).toarray() # Tabela valor de "t" em "d" vinculado ao sentimento 
-y = DATA['sentiment']
-
-X_train, X_v, y_train, y_v = train_test_split(X, y, test_size=0.2, random_state=7)
-
-# Modelos
-
-# Random Forest
-#rf_model = RandomForestClassifier(n_estimators=1000, random_state=7)
-#rf_model.fit(X_train, y_train)
-
-# Avaliação
-#y_pred = rf_model.predict(X_v)
-#print("Random Forest - Accuracy:", accuracy_score(y_v, y_pred))
-#print(classification_report(y_v, y_pred))
+X_train, X_v, y_train, y_v = train_test_split(matrixar(DATA)[0], matrixar(DATA)[1], test_size=0.2, random_state=7)
 
 # Redes Neuronais
 model = MLPClassifier(hidden_layer_sizes=(50,), max_iter=1, alpha=0.1, solver='sgd', random_state=7)
@@ -87,6 +72,8 @@ model.fit(X_train, y_train)
 
 # Fazer previsões
 y_pred = model.predict(X_v)
-
-# Avaliar a acurácia
 print("Redes Neuronais - Accuracy:", accuracy_score(y_v, y_pred))
+
+# Salvando
+with open('./ML-Carros-Usados/modelo.pkl', 'wb') as file:
+    pickle.dump(model, file)

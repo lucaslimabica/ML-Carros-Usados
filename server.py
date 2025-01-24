@@ -1,55 +1,55 @@
 from flask import Flask, request, jsonify
-import sqlite3
+import pickle
+import numpy as np
+import pandas as pd
 import json
-import os
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 base_dir = "C:/Users/lusca/Universidade/AA/TPFinal/ML-Carros-Usados"
-DATABASE = os.path.join(base_dir, "database.db")
 app = Flask(__name__)
 
+# Carregar o modelo treinado
+with open('modelo.pkl', 'rb') as file:
+    MODELO = pickle.load(file)
 
-def get_db_connection():
-    """
-    Cria e retorna uma connection à base de dados SQLite.
+with open('vectorizer.pkl', 'rb') as vec_file:
+    vectorizer = pickle.load(vec_file)
 
-    Setada no sqlite3.Row,
-    Que permite-nos aceder às colunas pelo nome e index.
-
-    Returns:
-        sqlite3.Connection: Uma conexão à database.
-    """
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    return conn, cursor
-
-def validar_json(json_string, required_keys) -> bool:
-    """
-    Valida o JSON assegurando que nele estão todas as necessárias chaves.
-
-    Args:
-        json_string (str): O JSON como uma string.
-        required_keys (list): Array de todas as chaves do JSON.
-
-    Returns:
-        bool: True se todas as chaves necessárias estão presentes, caso contrário, False.
-    """
-    try:
-        # Transforma o JSON string em um dicionário
-        data = json.loads(json_string)
-    except:  # noqa: E722
-        return False
-
-    # Verifica se todas as chaves necessárias estão presentes
-    for key in required_keys:
-        if key not in data:
-            return False
-
-    return True
+def matrixarFeatures(data_set):
+    vectorizer = TfidfVectorizer(max_features=1000)
+    X = vectorizer.fit_transform(data_set['filtrada']).toarray()
+    return X
 
 # EP do status da API
 @app.route('/status', methods=['GET'])
 def status_check():
     return jsonify({"status": "API está online."}), 200
 
+# EP de POST da frase
+@app.route('/previsao', methods=['POST'])
+def predict():
+    try:
+        data = request.get_json()
+        
+        if 'text' not in data:
+            return jsonify({'error': 'O campo "text" é obrigatório'}), 500
+        
+        # Tratar input
+        text = data['text']
+        X = vectorizer.transform([text]).toarray()
+        
+        # Prever
+        previsao = MODELO.predict(X)
+        probabilidade = MODELO.predict_proba(X).tolist()
+        
+        # Retorno
+        return jsonify({
+            'prediction': int(previsao[0]),
+            'probabilities': probabilidade
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 503
+
+if __name__ == '__main__':
+    app.run(debug=True)

@@ -1,8 +1,7 @@
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, accuracy_score, mean_squared_error, mean_absolute_error, r2_score
+from sklearn.metrics import accuracy_score
 import numpy as np
 from sklearn.neural_network import MLPClassifier 
 import nltk
@@ -20,8 +19,7 @@ def filtrarPalavras(texto):
     return ' '.join(palavras)
 
 
-def matrixar(data_set):
-    vectorizer = TfidfVectorizer(max_features=1000)
+def matrixar(data_set, vectorizer):
     X = vectorizer.fit_transform(data_set['filtrada']).toarray() # Tabela valor de "t" em "d" vinculado ao sentimento 
     y = data_set['sentiment']
     return X, y
@@ -64,7 +62,8 @@ DATA = pd.DataFrame({
 
 # Tratamento dos Dados
 DATA['filtrada'] = DATA['text'].apply(filtrarPalavras)
-X_train, X_v, y_train, y_v = train_test_split(matrixar(DATA)[0], matrixar(DATA)[1], test_size=0.2, random_state=7)
+vectorizer = TfidfVectorizer(max_features=80)
+X_train, X_v, y_train, y_v = train_test_split(matrixar(DATA, vectorizer=vectorizer)[0], matrixar(DATA, vectorizer=vectorizer)[1], test_size=0.2, random_state=7)
 
 # Redes Neuronais
 model = MLPClassifier(hidden_layer_sizes=(50,), max_iter=1, alpha=0.1, solver='sgd', random_state=7)
@@ -75,5 +74,8 @@ y_pred = model.predict(X_v)
 print("Redes Neuronais - Accuracy:", accuracy_score(y_v, y_pred))
 
 # Salvando
-with open('./ML-Carros-Usados/modelo.pkl', 'wb') as file:
-    pickle.dump(model, file)
+with open('modelo.pkl', 'wb') as model_file:
+    pickle.dump(model, model_file)
+
+with open('vectorizer.pkl', 'wb') as vec_file:
+    pickle.dump(vectorizer, vec_file)

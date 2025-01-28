@@ -34,9 +34,9 @@ y = train['price'] # Target
 X_train, X_v, y_train, y_v = train_test_split(X, y, test_size=0.2, random_state=7) # 20% para validação
 
 # Treino
-#model = RandomForestRegressor(n_estimators=100, random_state=7)
-#model = SVR(kernel='rbf')
-#model = GradientBoostingRegressor(n_estimators=500, random_state=7)
+#RandomForest = RandomForestRegressor(n_estimators=100, random_state=7)
+#SVRmodel = SVR(kernel='rbf')
+#GBR = GradientBoostingRegressor(n_estimators=500, random_state=7)
 model = MLPRegressor(hidden_layer_sizes=(100, 50, 25,), max_iter=2000, alpha=0.0001, solver='adam', random_state=7)
 model.fit(X_train, y_train)
 

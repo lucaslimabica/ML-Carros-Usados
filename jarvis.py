@@ -1,81 +1,76 @@
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-import numpy as np
-from sklearn.neural_network import MLPClassifier 
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn.neural_network import MLPClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report
 import nltk
 import pickle
+import re
+from nltk.stem import WordNetLemmatizer
 
-
-# Setando as stopwords
+# Setando as stopwords e lematizador
 nltk.download('stopwords')
-STOPWORDS = nltk.corpus.stopwords.words('portuguese')
+nltk.download('wordnet')
+STOPWORDS = set(nltk.corpus.stopwords.words('english'))
+lemmatizer = WordNetLemmatizer()
 
-# Vetorizando
+# Função para remover stopwords, pontuação e lematizar
 def filtrarPalavras(texto):
+    if not isinstance(texto, str):
+        return ''
+    texto = re.sub(r'[^\w\s]', '', texto)  # Remove pontuação
     palavras = texto.lower().split()
-    palavras = [palavra for palavra in palavras if palavra not in STOPWORDS]
+    palavras = [lemmatizer.lemmatize(palavra) for palavra in palavras if palavra not in STOPWORDS]
     return ' '.join(palavras)
 
-
+# Função para vetorizar os textos e associar com os rótulos
 def matrixar(data_set, vectorizer):
-    X = vectorizer.fit_transform(data_set['filtrada']).toarray() # Tabela valor de "t" em "d" vinculado ao sentimento 
+    X = vectorizer.fit_transform(data_set['filtrada']).toarray()
     y = data_set['sentiment']
     return X, y
 
-DATA = pd.DataFrame({
-    'text': [
-        'Eu amei este filme!', 
-        'Pior coisa do mundo.',
-        'Atendimento maravilhoso',
-        'Horrível',
-        'Fantastico, simplesmente maravilhoso',
-        'Não foi o que eu esperava',
-        'Muito bom',
-        'Desapontado com isto.',
-        'Perfeito demais!',
-        'Ruim...',
-        'Adorei a experiência, recomendo muito!',
-        'Comida estava horrível, não volto mais.',
-        'Que lugar incrível, foi inesquecível!',
-        'O produto não funciona como deveria, uma decepção.',
-        'Entrega rápida e sem problemas. Excelente serviço!',
-        'Que filme mais chato, quase dormi.',
-        'Fiquei surpreso com a qualidade, parabéns!',
-        'Péssima qualidade, produto quebrou no primeiro uso.',
-        'Amei a apresentação, voltarei mais vezes.',
-        'Nunca mais quero passar por isso, foi terrível.',
-        'Gostei bastante, superou minhas expectativas!',
-        'Um completo desperdício de dinheiro.',
-        'Simplesmente fantástico, me emocionei!',
-        'Serviço medíocre, me senti ignorado.',
-        'Muito feliz com o atendimento, foi impecável.',
-        'Inaceitável, um completo desrespeito ao cliente.',
-        'Experiência agradável e sem contratempos.',
-        'Não gostei, esperava algo muito melhor.',
-        'Recomendo a todos, foi perfeito!',
-        'Arrependido de ter comprado isso.',
-    ],
-    'sentiment': [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
-})
+# Carregar os dados
+DATA = pd.read_csv("C:/Users/lusca/Universidade/AA/TPFinal/ML-Carros-Usados/DATASETCINEMA.csv")
 
-# Tratamento dos Dados
+# Verificar se as colunas esperadas estão no dataset
+if 'text' not in DATA.columns or 'sentiment' not in DATA.columns:
+    raise ValueError("O dataset deve conter as colunas 'text' e 'sentiment'.")
+
+# Remover dados faltantes
+DATA.dropna(inplace=True)
+
+# Aplicar pré-processamento nos textos
 DATA['filtrada'] = DATA['text'].apply(filtrarPalavras)
-vectorizer = TfidfVectorizer(max_features=80)
-X_train, X_v, y_train, y_v = train_test_split(matrixar(DATA, vectorizer=vectorizer)[0], matrixar(DATA, vectorizer=vectorizer)[1], test_size=0.2, random_state=7)
 
-# Redes Neuronais
-model = MLPClassifier(hidden_layer_sizes=(50,), max_iter=1, alpha=0.1, solver='sgd', random_state=7)
+# Inicializar o vetor TF-IDF
+vectorizer = TfidfVectorizer(max_features=5000, ngram_range=(1, 2))
+
+# Vetorizar os dados e dividir em treino e validação
+X, y = matrixar(DATA, vectorizer=vectorizer)
+X_train, X_v, y_train, y_v = train_test_split(X, y, test_size=0.2, random_state=7)
+
+# Configurar e treinar o modelo de rede neural
+#model = MLPClassifier(hidden_layer_sizes=(150, 50, 25), max_iter=300, alpha=0.0001, solver='adam', random_state=7)
+model = RandomForestClassifier(n_estimators=100, max_depth=None, random_state=7)
 model.fit(X_train, y_train)
 
 # Fazer previsões
 y_pred = model.predict(X_v)
-print("Redes Neuronais - Accuracy:", accuracy_score(y_v, y_pred))
+print("Accuracy:", accuracy_score(y_v, y_pred))
+print(classification_report(y_v, y_pred))
 
-# Salvando
+# Validação cruzada
+scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
+print("Acurácia com validação cruzada:", scores.mean())
+
+# Salvar modelo e vetorizador
 with open('modelo.pkl', 'wb') as model_file:
     pickle.dump(model, model_file)
 
 with open('vectorizer.pkl', 'wb') as vec_file:
     pickle.dump(vectorizer, vec_file)
+
+print("Modelo e vetor TF-IDF salvos com sucesso!")

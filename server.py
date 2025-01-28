@@ -3,23 +3,32 @@ import pickle
 import numpy as np
 import pandas as pd
 import json
+import re
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 base_dir = "C:/Users/lusca/Universidade/AA/TPFinal/ML-Carros-Usados"
 app = Flask(__name__)
 
-# Carregar o modelo treinado
-with open('modelo.pkl', 'rb') as file:
+with open('C:/Users/lusca/Universidade/AA/TPFinal/modelo.pkl', 'rb') as file:
     MODELO = pickle.load(file)
 
-with open('vectorizer.pkl', 'rb') as vec_file:
+with open('C:/Users/lusca/Universidade/AA/TPFinal/vectorizer.pkl', 'rb') as vec_file:
     vectorizer = pickle.load(vec_file)
 
-def matrixarFeatures(data_set):
-    vectorizer = TfidfVectorizer(max_features=1000)
-    X = vectorizer.fit_transform(data_set['filtrada']).toarray()
-    return X
+
+STOPWORDS = set(stopwords.words('english'))
+lemmatizer = WordNetLemmatizer()
+def filtrarPalavras(texto):
+    if not isinstance(texto, str):
+        return ''
+    texto = re.sub(r'[^\w\s]', '', texto)  # Remove pontuação
+    palavras = texto.lower().split()
+    palavras = [lemmatizer.lemmatize(palavra) for palavra in palavras if palavra not in STOPWORDS]
+    return ' '.join(palavras)
+
 
 # EP do status da API
 @app.route('/status', methods=['GET'])
@@ -37,17 +46,12 @@ def predict():
         
         # Tratar input
         text = data['text']
-        X = vectorizer.transform([text]).toarray()
-        
-        # Prever
-        previsao = MODELO.predict(X)
-        probabilidade = MODELO.predict_proba(X).tolist()
-        
-        # Retorno
-        return jsonify({
-            'prediction': int(previsao[0]),
-            'probabilities': probabilidade
-        })
+        texto_filtrado = filtrarPalavras(text)
+        texto_vetorizado = vectorizer.transform([texto_filtrado]).toarray()
+        predicao = MODELO.predict(texto_vetorizado)[0]
+        sentimento = "positivo" if predicao == 1 else "negativo"
+        return jsonify({"texto": text, "sentimento": sentimento})
+    
     except Exception as e:
         return jsonify({'error': str(e)}), 503
 
